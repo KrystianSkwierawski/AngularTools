@@ -26,17 +26,4 @@ public static class ExtensionHelper
 
         return string.Empty;
     }
-
-    public static async Task CatchErrorAsync(Func<Task> func)
-    {
-        try
-        {
-            await func();
-        }
-        catch (Exception ex)
-        {
-            ActivityLog.LogError($"[AngularTools]{nameof(OpenConsoleCommand)}", ex.ToString());
-            System.Windows.Forms.MessageBox.Show(ex.Message, $"[AngularTools]:{nameof(OpenConsoleCommand)} Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
-        }
-    }
 }

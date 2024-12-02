@@ -18,10 +18,10 @@
 		<Buttons>
 			<Button guid="AngularTools" id="OpenConsoleCommand" priority="0x0100" type="Button">
 				<Parent guid="AngularTools" id="MyMenuGroup" />
-				<Icon guid="ImageCatalogGuid" id="StatusInformation" />
+				<Icon guid="ImageCatalogGuid" id="Console" />
 				<CommandFlag>IconIsMoniker</CommandFlag>
 				<Strings>
-					<ButtonText>My Command</ButtonText>
+					<ButtonText>Open Console Here</ButtonText>
 					<LocCanonicalName>.AngularTools.OpenConsoleCommand</LocCanonicalName>
 				</Strings>
 			</Button>

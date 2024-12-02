@@ -3,21 +3,19 @@
 namespace AngularTools;
 
 [Command(PackageIds.OpenConsoleCommand)]
-internal sealed class OpenConsoleCommand : BaseCommand<OpenConsoleCommand>
+internal sealed class OpenConsoleCommand : AbstractBaseCommand<OpenConsoleCommand>
 {
-    protected override async Task ExecuteAsync(OleMenuCmdEventArgs e)
+    protected override async Task RunCommandAsync(OleMenuCmdEventArgs e)
     {
-        await ExtensionHelper.CatchErrorAsync(async () =>
+        var path = await ExtensionHelper.GetActiveProjectAsync();
+
+        if (string.IsNullOrWhiteSpace(path))
         {
-            var path = await ExtensionHelper.GetActiveProjectAsync();
+            ActivityLog.LogInformation(Source, "Not found active project");
+            return;
+        }
 
-            if (string.IsNullOrWhiteSpace(path))
-            {
-                throw new ArgumentNullException("Empty directory path");
-            }
-
-            var cmd = $"/k cd {path}";
-            System.Diagnostics.Process.Start("CMD.exe", cmd);
-        });
+        var cmd = $"/k cd {path}";
+        System.Diagnostics.Process.Start("CMD.exe", cmd);
     }
 }
