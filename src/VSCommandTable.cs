@@ -22,5 +22,6 @@ namespace AngularTools
     {
         public const int MyMenuGroup = 0x0001;
         public const int OpenConsoleCommand = 0x0002;
+        public const int ComponentTemplateSwitchCommand = 0x0003;
     }
 }

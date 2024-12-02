@@ -2,6 +2,9 @@
 
 namespace AngularTools;
 
+/// <summary>
+/// Opens a console window in the current project directory
+/// </summary>
 [Command(PackageIds.OpenConsoleCommand)]
 internal sealed class OpenConsoleCommand : AbstractBaseCommand<OpenConsoleCommand>
 {

@@ -25,10 +25,21 @@
 					<LocCanonicalName>.AngularTools.OpenConsoleCommand</LocCanonicalName>
 				</Strings>
 			</Button>
+
+			<Button guid="AngularTools" id="ComponentTemplateSwitchCommand" priority="0x1000" type="Button">
+				<Parent guid="AngularTools" id="MyMenuGroup" />
+				<Icon guid="ImageCatalogGuid" id="Console" />
+				<CommandFlag>IconIsMoniker</CommandFlag>
+				<Strings>
+					<ButtonText>Switch Component/Template</ButtonText>
+					<LocCanonicalName>.AngularTools.ComponentTemplateSwitchCommand</LocCanonicalName>
+				</Strings>
+			</Button>
 		</Buttons>
 	</Commands>
 
 	<KeyBindings>
+		<KeyBinding guid="AngularTools" id="ComponentTemplateSwitchCommand" editor="guidVSStd97" mod1="Control" key1="0x32" />
 		<KeyBinding guid="AngularTools" id="OpenConsoleCommand" editor="guidVSStd97" mod1="Control" key1="0x34" />
 	</KeyBindings>
 
@@ -36,6 +47,7 @@
 		<GuidSymbol name="AngularTools" value="{aca500d3-6558-4fa4-99b9-8c71a1b0d93d}">
 			<IDSymbol name="MyMenuGroup" value="1" />
 			<IDSymbol name="OpenConsoleCommand" value="2" />
+			<IDSymbol name="ComponentTemplateSwitchCommand" value="3" />
 		</GuidSymbol>
 	</Symbols>
 </CommandTable>

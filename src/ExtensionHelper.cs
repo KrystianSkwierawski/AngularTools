@@ -1,6 +1,7 @@
 ﻿using System.IO;
 using System.Threading.Tasks;
 using System.Windows.Forms;
+using EnvDTE;
 using EnvDTE80;
 using Microsoft.VisualStudio.Shell.Interop;
 
@@ -11,8 +12,8 @@ public static class ExtensionHelper
     {
         await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync();
 
-        var dte2 = await VS.GetServiceAsync<SDTE, DTE2>();
-        var activeSolutionProjects = dte2.ActiveSolutionProjects as Array;
+        var dte = await VS.GetServiceAsync<SDTE, DTE2>();
+        var activeSolutionProjects = dte.ActiveSolutionProjects as Array;
 
         if (activeSolutionProjects?.Length > 0)
         {
@@ -25,5 +26,14 @@ public static class ExtensionHelper
         }
 
         return string.Empty;
+    }
+
+    public static async Task<string> GetActiveDocumentAsync()
+    {
+        await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync();
+
+        var dte = await VS.GetServiceAsync<SDTE, DTE2>();
+
+        return dte.ActiveDocument?.FullName ?? string.Empty;
     }
 }
