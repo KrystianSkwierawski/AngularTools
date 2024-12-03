@@ -16,7 +16,7 @@
 		<!--This section defines the elements the user can interact with, like a menu command or a button
         or combo box in a toolbar. -->
 		<Buttons>
-			<Button guid="AngularTools" id="OpenConsoleCommand" priority="0x0100" type="Button">
+			<Button guid="AngularTools" id="OpenConsoleCommand" priority="1" type="Button">
 				<Parent guid="AngularTools" id="MyMenuGroup" />
 				<Icon guid="ImageCatalogGuid" id="Console" />
 				<CommandFlag>IconIsMoniker</CommandFlag>
@@ -26,13 +26,24 @@
 				</Strings>
 			</Button>
 
-			<Button guid="AngularTools" id="ComponentTemplateSwitchCommand" priority="0x1000" type="Button">
+			<Button guid="AngularTools" id="ComponentTemplateSwitchCommand" priority="2" type="Button">
 				<Parent guid="AngularTools" id="MyMenuGroup" />
 				<Icon guid="ImageCatalogGuid" id="Console" />
 				<CommandFlag>IconIsMoniker</CommandFlag>
 				<Strings>
-					<ButtonText>Switch Component/Template</ButtonText>
+					<ButtonText>Open Console Here</ButtonText>
 					<LocCanonicalName>.AngularTools.ComponentTemplateSwitchCommand</LocCanonicalName>
+				</Strings>
+			</Button>
+
+
+			<Button guid="AngularTools" id="ComponentStylesSwitchCommand" priority="3" type="Button">
+				<Parent guid="AngularTools" id="MyMenuGroup" />
+				<Icon guid="ImageCatalogGuid" id="Console" />
+				<CommandFlag>IconIsMoniker</CommandFlag>
+				<Strings>
+					<ButtonText>Switch to component's styles</ButtonText>
+					<LocCanonicalName>.AngularTools.ComponentStylesSwitchCommand</LocCanonicalName>
 				</Strings>
 			</Button>
 		</Buttons>
@@ -40,7 +51,8 @@
 
 	<KeyBindings>
 		<KeyBinding guid="AngularTools" id="ComponentTemplateSwitchCommand" editor="guidVSStd97" mod1="Control" key1="0x32" />
-		<KeyBinding guid="AngularTools" id="OpenConsoleCommand" editor="guidVSStd97" mod1="Control" key1="0x34" />
+		<KeyBinding guid="AngularTools" id="ComponentStylesSwitchCommand" editor="guidVSStd97" mod1="Control" key1="0x33" />
+		<KeyBinding guid="AngularTools" id="OpenConsoleCommand" editor="guidVSStd97" mod1="Control" key1="0x34" />	
 	</KeyBindings>
 
 	<Symbols>
@@ -48,6 +60,7 @@
 			<IDSymbol name="MyMenuGroup" value="1" />
 			<IDSymbol name="OpenConsoleCommand" value="2" />
 			<IDSymbol name="ComponentTemplateSwitchCommand" value="3" />
+			<IDSymbol name="ComponentStylesSwitchCommand" value="4" />
 		</GuidSymbol>
 	</Symbols>
 </CommandTable>

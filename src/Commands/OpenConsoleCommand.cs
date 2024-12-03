@@ -10,7 +10,7 @@ internal sealed class OpenConsoleCommand : AbstractBaseCommand<OpenConsoleComman
 {
     protected override async Task RunCommandAsync(OleMenuCmdEventArgs e)
     {
-        var path = await ExtensionHelper.GetActiveProjectAsync();
+        var path = await GetActiveProjectAsync();
 
         if (string.IsNullOrWhiteSpace(path))
         {

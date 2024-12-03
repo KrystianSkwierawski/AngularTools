@@ -1,4 +1,8 @@
-﻿using System.Windows.Forms;
+﻿using System.IO;
+using System.Threading.Tasks;
+using System.Windows.Forms;
+using EnvDTE80;
+using Microsoft.VisualStudio.Shell.Interop;
 
 internal abstract class AbstractBaseCommand<T> : BaseCommand<T> where T : class, new()
 {
@@ -14,6 +18,48 @@ internal abstract class AbstractBaseCommand<T> : BaseCommand<T> where T : class,
 
     protected abstract Task RunCommandAsync(OleMenuCmdEventArgs e);
 
+    #region Helpers
+
+    protected static async Task<string> GetActiveProjectAsync()
+    {
+        await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync();
+
+        var dte = await VS.GetServiceAsync<SDTE, DTE2>();
+        var activeSolutionProjects = dte.ActiveSolutionProjects as Array;
+
+        if (activeSolutionProjects?.Length > 0)
+        {
+            var activeProject = activeSolutionProjects.GetValue(0) as EnvDTE.Project;
+            var fullname = activeProject.FullName;
+
+            var attr = File.GetAttributes(fullname);
+
+            return attr.HasFlag(FileAttributes.Directory) ? fullname : Path.GetDirectoryName(fullname);
+        }
+
+        return string.Empty;
+    }
+
+    protected static async Task<string> GetActiveDocumentAsync()
+    {
+        await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync();
+
+        var dte = await VS.GetServiceAsync<SDTE, DTE2>();
+
+        return dte.ActiveDocument?.FullName ?? string.Empty;
+    }
+
+    protected static bool IsDocumentValid(string document)
+    {
+        if (string.IsNullOrEmpty(document) || !File.Exists(document))
+        {
+            ActivityLog.LogInformation(Source, "Document doesn't exist");
+            return false;
+        }
+
+        return true;
+    }
+
     private static async Task CatchErrorAsync(Func<Task> func)
     {
         try
@@ -28,4 +74,6 @@ internal abstract class AbstractBaseCommand<T> : BaseCommand<T> where T : class,
             System.Windows.Forms.MessageBox.Show(ex.Message, $"{Source} Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
         }
     }
+
+    #endregion
 }

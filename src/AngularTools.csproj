@@ -46,8 +46,8 @@
   </PropertyGroup>
   <ItemGroup>
     <Compile Include="Commands\AbstractBaseCommand.cs" />
+    <Compile Include="Commands\TemplateStylesSwitchCommand.cs" />
     <Compile Include="Commands\ComponentTemplateSwitchCommand.cs" />
-    <Compile Include="ExtensionHelper.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Commands\OpenConsoleCommand.cs" />
     <Compile Include="AngularToolsPackage.cs" />
