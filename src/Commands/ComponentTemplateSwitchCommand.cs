@@ -1,7 +1,7 @@
 ﻿namespace AngularTools.Commands;
 
 /// <summary>
-/// Switches between a component file (.ts) and a template file (.html)
+/// Switches between .ts/.html file
 /// </summary>
 [Command(PackageIds.ComponentTemplateSwitchCommand)]
 internal sealed class ComponentTemplateSwitchCommand : AbstractBaseCommand<ComponentTemplateSwitchCommand>

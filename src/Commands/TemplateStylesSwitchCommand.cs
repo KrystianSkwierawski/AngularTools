@@ -1,7 +1,7 @@
 ﻿namespace AngularTools.Commands;
 
 /// <summary>
-/// Switches between a styles file (.scss) and a template file (.html)
+/// Switches between .scss/.html file
 /// </summary>
 [Command(PackageIds.ComponentStylesSwitchCommand)]
 internal sealed class TemplateStylesSwitchCommand : AbstractBaseCommand<TemplateStylesSwitchCommand>
