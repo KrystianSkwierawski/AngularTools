@@ -8,9 +8,9 @@ internal sealed class TemplateStylesSwitchCommand : AbstractBaseCommand<Template
 {
     protected override async Task RunCommandAsync(OleMenuCmdEventArgs e)
     {
-        var activeDocument = await GetActiveDocumentAsync();
+        var document = await GetActiveDocumentAsync();
 
-        var switchedDocument = activeDocument switch
+        var switchedDocument = document.FullName switch
         {
             var x when x.EndsWith(".html") => x.Replace(".html", ".scss"),
             var x when x.EndsWith(".ts") => x.Replace(".ts", ".scss"),

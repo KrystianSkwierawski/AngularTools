@@ -8,8 +8,12 @@
 
 	<Commands package="AngularTools">
 		<Groups>
-			<Group guid="AngularTools" id="MyMenuGroup" priority="0x0600">
+			<Group guid="AngularTools" id="ToolsGroup" priority="0x0600">
 				<Parent guid="VSMainMenu" id="Tools"/>
+			</Group>
+
+			<Group guid="AngularTools" id="EditGroup" priority="0x0600">
+				<Parent guid="VSMainMenu" id="Edit"/>
 			</Group>
 		</Groups>
 
@@ -17,7 +21,7 @@
         or combo box in a toolbar. -->
 		<Buttons>
 			<Button guid="AngularTools" id="OpenConsoleCommand" priority="1" type="Button">
-				<Parent guid="AngularTools" id="MyMenuGroup" />
+				<Parent guid="AngularTools" id="ToolsGroup" />
 				<Icon guid="ImageCatalogGuid" id="Console" />
 				<CommandFlag>IconIsMoniker</CommandFlag>
 				<Strings>
@@ -27,7 +31,7 @@
 			</Button>
 
 			<Button guid="AngularTools" id="ComponentTemplateSwitchCommand" priority="2" type="Button">
-				<Parent guid="AngularTools" id="MyMenuGroup" />
+				<Parent guid="AngularTools" id="ToolsGroup" />
 				<Icon guid="ImageCatalogGuid" id="TSFileNode" />
 				<CommandFlag>IconIsMoniker</CommandFlag>
 				<Strings>
@@ -38,12 +42,22 @@
 
 
 			<Button guid="AngularTools" id="ComponentStylesSwitchCommand" priority="3" type="Button">
-				<Parent guid="AngularTools" id="MyMenuGroup" />
+				<Parent guid="AngularTools" id="ToolsGroup" />
 				<Icon guid="ImageCatalogGuid" id="SASSStyleSheet" />
 				<CommandFlag>IconIsMoniker</CommandFlag>
 				<Strings>
 					<ButtonText>Switch Between .scss/.html</ButtonText>
 					<LocCanonicalName>.AngularTools.ComponentStylesSwitchCommand</LocCanonicalName>
+				</Strings>
+			</Button>
+
+			<Button guid="AngularTools" id="RenameComponentCommand" priority="4" type="Button">
+				<Parent guid="AngularTools" id="EditGroup" />
+				<Icon guid="ImageCatalogGuid" id="Rename" />
+				<CommandFlag>IconIsMoniker</CommandFlag>
+				<Strings>
+					<ButtonText>Rename Angular Component</ButtonText>
+					<LocCanonicalName>.AngularTools.RenameComponentCommand</LocCanonicalName>
 				</Strings>
 			</Button>
 		</Buttons>
@@ -52,15 +66,18 @@
 	<KeyBindings>
 		<KeyBinding guid="AngularTools" id="ComponentTemplateSwitchCommand" editor="guidVSStd97" mod1="Control" key1="0x32" />
 		<KeyBinding guid="AngularTools" id="ComponentStylesSwitchCommand" editor="guidVSStd97" mod1="Control" key1="0x33" />
-		<KeyBinding guid="AngularTools" id="OpenConsoleCommand" editor="guidVSStd97" mod1="Control" key1="0x34" />	
+		<KeyBinding guid="AngularTools" id="OpenConsoleCommand" editor="guidVSStd97" mod1="Control" key1="0x34" />
 	</KeyBindings>
 
 	<Symbols>
 		<GuidSymbol name="AngularTools" value="{aca500d3-6558-4fa4-99b9-8c71a1b0d93d}">
-			<IDSymbol name="MyMenuGroup" value="1" />
-			<IDSymbol name="OpenConsoleCommand" value="2" />
-			<IDSymbol name="ComponentTemplateSwitchCommand" value="3" />
-			<IDSymbol name="ComponentStylesSwitchCommand" value="4" />
+			<IDSymbol name="ToolsGroup" value="1" />
+			<IDSymbol name="EditGroup" value="2" />
+
+			<IDSymbol name="OpenConsoleCommand" value="3" />
+			<IDSymbol name="ComponentTemplateSwitchCommand" value="4" />
+			<IDSymbol name="ComponentStylesSwitchCommand" value="5" />
+			<IDSymbol name="RenameComponentCommand" value="6" />
 		</GuidSymbol>
 	</Symbols>
 </CommandTable>
