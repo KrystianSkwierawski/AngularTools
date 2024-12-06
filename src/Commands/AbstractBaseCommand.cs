@@ -51,11 +51,11 @@ internal abstract class AbstractBaseCommand<T> : BaseCommand<T> where T : class,
         return string.Empty;
     }
 
-    protected async Task FindAndReplaceAsync(string find, string replace)
+    protected async Task FindAndReplaceAsync(string find, string replace, vsFindTarget target, string filesOfType)
     {
         await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync();
 
-        _dte.Find.FindReplace(vsFindAction.vsFindActionReplaceAll, find, 0, replace, vsFindTarget.vsFindTargetCurrentProject);
+        _dte.Find.FindReplace(vsFindAction.vsFindActionReplaceAll, find, 0, replace, target, FilesOfType: filesOfType);
     }
 
     protected static bool IsDocumentValid(string document)
@@ -74,6 +74,7 @@ internal abstract class AbstractBaseCommand<T> : BaseCommand<T> where T : class,
         try
         {
             ActivityLog.LogInformation(Source, "Start");
+            throw new Exception("test");
             await func();
             ActivityLog.LogInformation(Source, "Stop");
         }
