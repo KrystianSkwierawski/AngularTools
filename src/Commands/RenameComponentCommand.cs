@@ -1,4 +1,6 @@
-﻿using System.IO;
+﻿using System.Globalization;
+using System.IO;
+using System.Linq;
 using EnvDTE;
 using Microsoft.VisualBasic;
 
@@ -14,63 +16,89 @@ internal sealed class RenameComponentCommand : AbstractBaseCommand<RenameCompone
     {
         var document = await GetActiveDocumentAsync();
 
-        if (IsComponent(document.Name))
+        if (IsDocumentValid(document.FullName) && document.Name.EndsWith(".component.ts"))
         {
             var input = Interaction.InputBox("Enter the new component name:", "Rename Angular Component", document.Name);
 
-            if (document.Name == input)
+            if (document.Name == input || !input.EndsWith(".component.ts"))
             {
                 return;
             }
 
             await Task.WhenAll
             (
-                RenameClassNameAsync(),
-                AdjustAttributesAsync(),
-                AdjustPathsAsync(),
-                AdjustSelectorsAsync()
+                RenameClassNameAsync(document.Name, input),
+                AdjustAttributesAsync(document.Name, input),
+                AdjustPathsAsync(document.Name, input),
+                AdjustSelectorsAsync(document.Name, input)
             );
 
+            await SaveActiveDocumentAsync();
             RenameFiles(document, input);
             RenameDir(document, input);
         }
     }
 
-    private async Task RenameClassNameAsync()
+    private async Task RenameClassNameAsync(string documentName, string input)
     {
-        await FindAndReplaceAsync("TestAComponent", "TestBComponent", vsFindTarget.vsFindTargetCurrentProject, "*.ts");
+        var find = GetClassName(documentName);
+        var replace = GetClassName(input);
 
-        ActivityLog.LogInformation(Source, "Adjusted class name");
+        await FindAndReplaceAsync(find, replace, vsFindTarget.vsFindTargetCurrentProject, "*.ts");
+        ActivityLog.LogInformation(Source, "Renamed class name");
     }
 
-    private async Task AdjustAttributesAsync()
+    private async Task AdjustAttributesAsync(string documentName, string input)
     {
-        await FindAndReplaceAsync("test-a.component.html", "test-b.component.html", vsFindTarget.vsFindTargetCurrentDocument, "*.ts");
-        await FindAndReplaceAsync("test-a.scss", "test-b.scss", vsFindTarget.vsFindTargetCurrentDocument, "*.ts");
+        var oldName = Path.GetFileNameWithoutExtension(documentName);
+        var newName = Path.GetFileNameWithoutExtension(input);
+
+        await Task.WhenAll
+        (
+            FindAndReplaceAsync($"{oldName}.html", $"{newName}.html", vsFindTarget.vsFindTargetCurrentProject, "*.ts"),
+            FindAndReplaceAsync($"{oldName}.scss", $"{newName}.scss", vsFindTarget.vsFindTargetCurrentProject, "*.ts")
+        );
 
         ActivityLog.LogInformation(Source, "Adjusted attributes");
     }
 
-    private async Task AdjustPathsAsync()
+    private async Task AdjustPathsAsync(string documentName, string input)
     {
-        await FindAndReplaceAsync("test-a/test-a.component", "test-b/test-b.component", vsFindTarget.vsFindTargetCurrentProject, "*.ts");
+        var oldName = Path.GetFileNameWithoutExtension(documentName);
+        var newName = Path.GetFileNameWithoutExtension(input);
+        var find = $"{oldName.Replace(".component", string.Empty)}/{oldName}";
+        var replace = $"{newName.Replace(".component", string.Empty)}/{newName}";
 
+        await FindAndReplaceAsync(find, replace, vsFindTarget.vsFindTargetCurrentProject, "*.ts");
         ActivityLog.LogInformation(Source, "Adjusted paths");
     }
 
-    private async Task AdjustSelectorsAsync()
+    private async Task AdjustSelectorsAsync(string documentName, string input)
     {
-        await FindAndReplaceAsync("<test-a", "<test-b", vsFindTarget.vsFindTargetCurrentProject, "*.html");
-        await FindAndReplaceAsync("</test-a>", "</test-b>", vsFindTarget.vsFindTargetCurrentProject, "*.html");
+        var oldComponentName = documentName.Split('.')[0];
+        var newComponentName = input.Split('.')[0];
+        var find = $"app-{oldComponentName}";
+        var replace = $"app-{newComponentName}";
+
+        await FindAndReplaceAsync(find, replace, vsFindTarget.vsFindTargetCurrentProject, "*.html;*.ts");
 
         ActivityLog.LogInformation(Source, "Adjusted selectors");
     }
+
     private static void RenameFiles(ActiveDocument document, string input)
     {
-        Microsoft.VisualBasic.FileIO.FileSystem.RenameFile(document.FullName, input); // component.html
-        Microsoft.VisualBasic.FileIO.FileSystem.RenameFile(document.FullName, input); // component.ts
-        Microsoft.VisualBasic.FileIO.FileSystem.RenameFile(document.FullName, input); // component.scss
-        Microsoft.VisualBasic.FileIO.FileSystem.RenameFile(document.FullName, input); // component.spec.ts
+        var oldName = Path.GetFileNameWithoutExtension(document.Name);
+        var newName = Path.GetFileNameWithoutExtension(input);
+
+        foreach (var extension in new[] { ".html", ".ts", ".spec.ts", ".scss" })
+        {
+            var oldPath = $"{document.Path}{oldName}{extension}";
+
+            if (IsDocumentValid(oldPath))
+            {
+                Microsoft.VisualBasic.FileIO.FileSystem.RenameFile(oldPath, $"{newName}{extension}");
+            }
+        }
 
         ActivityLog.LogInformation(Source, "Renamed files");
     }
@@ -86,13 +114,10 @@ internal sealed class RenameComponentCommand : AbstractBaseCommand<RenameCompone
         ActivityLog.LogInformation(Source, "Renamed dir");
     }
 
-    private static bool IsComponent(string document)
+    private string GetClassName(string fileName)
     {
-        if (IsDocumentValid(document))
-        {
-            return false;
-        }
-
-        return document.EndsWith(".component.ts");
+        var name = Path.GetFileNameWithoutExtension(fileName);
+        var parts = name.Split(['-', '.'], StringSplitOptions.RemoveEmptyEntries);
+        return string.Concat(parts.Select(part => CultureInfo.CurrentCulture.TextInfo.ToTitleCase(part)));
     }
 }

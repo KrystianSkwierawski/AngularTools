@@ -29,7 +29,13 @@ internal abstract class AbstractBaseCommand<T> : BaseCommand<T> where T : class,
 
         var document = _dte.ActiveDocument;
 
-        return new ActiveDocument(document.FullName, document.Name, document.Path);
+        return new ActiveDocument(document?.FullName, document?.Name, document?.Path);
+    }
+
+    protected async Task SaveActiveDocumentAsync()
+    {
+        await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync();
+        _dte.ActiveDocument.Save();
     }
 
     protected async Task<string> GetActiveProjectAsync()
@@ -37,7 +43,6 @@ internal abstract class AbstractBaseCommand<T> : BaseCommand<T> where T : class,
         await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync();
 
         var activeSolutionProjects = _dte.ActiveSolutionProjects as Array;
-
         if (activeSolutionProjects?.Length > 0)
         {
             var activeProject = activeSolutionProjects.GetValue(0) as EnvDTE.Project;
@@ -54,6 +59,12 @@ internal abstract class AbstractBaseCommand<T> : BaseCommand<T> where T : class,
     protected async Task FindAndReplaceAsync(string find, string replace, vsFindTarget target, string filesOfType)
     {
         await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync();
+
+        //int options = (int)(vsFindOptions.vsFindOptionsRegularExpression |
+        //  vsFindOptions.vsFindOptionsMatchCase |
+        //  vsFindOptions.vsFindOptionsMatchInHiddenText |
+        //  vsFindOptions.vsFindOptionsSearchSubfolders |
+        //  vsFindOptions.vsFindOptionsKeepModifiedDocumentsOpen);
 
         _dte.Find.FindReplace(vsFindAction.vsFindActionReplaceAll, find, 0, replace, target, FilesOfType: filesOfType);
     }
@@ -74,7 +85,6 @@ internal abstract class AbstractBaseCommand<T> : BaseCommand<T> where T : class,
         try
         {
             ActivityLog.LogInformation(Source, "Start");
-            throw new Exception("test");
             await func();
             ActivityLog.LogInformation(Source, "Stop");
         }
