@@ -6,9 +6,11 @@
         <Description xml:space="preserve">WIP</Description>
         <MoreInfo>https://github.com/KrystianSkwierawski/AngularTools</MoreInfo>
         <License>LICENSE.txt</License>
+        <ReleaseNotes>1.0.0</ReleaseNotes>
         <Icon>Resources\Icon.png</Icon>
         <PreviewImage>Resources\Icon.png</PreviewImage>
         <Tags>Visual Studio, Angular, Tools</Tags>
+        <Preview>true</Preview>
     </Metadata>
     <Installation>
         <InstallationTarget Id="Microsoft.VisualStudio.Community" Version="[17.0, 18.0)">

@@ -16,6 +16,7 @@
     <RootNamespace>AngularTools</RootNamespace>
     <AssemblyName>AngularTools</AssemblyName>
     <TargetFrameworkVersion>v4.8</TargetFrameworkVersion>
+    <LangVersion>13.0</LangVersion>
     <GeneratePkgDefFile>true</GeneratePkgDefFile>
     <UseCodebase>true</UseCodebase>
     <IncludeAssemblyInVSIXContainer>true</IncludeAssemblyInVSIXContainer>
@@ -46,6 +47,7 @@
   </PropertyGroup>
   <ItemGroup>
     <Compile Include="Commands\AbstractBaseCommand.cs" />
+    <Compile Include="Commands\RenameComponentCommand.cs" />
     <Compile Include="Commands\TemplateStylesSwitchCommand.cs" />
     <Compile Include="Commands\ComponentTemplateSwitchCommand.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
@@ -85,6 +87,7 @@
     </VSCTCompile>
   </ItemGroup>
   <ItemGroup>
+    <Reference Include="Microsoft.VisualBasic" />
     <Reference Include="System" />
     <Reference Include="System.Design" />
     <Reference Include="System.ComponentModel.Composition" />
@@ -102,6 +105,7 @@
       <PrivateAssets>all</PrivateAssets>
     </PackageReference>
   </ItemGroup>
+  <ItemGroup />
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <Import Project="$(VSToolsPath)\VSSDK\Microsoft.VsSDK.targets" Condition="'$(VSToolsPath)' != ''" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 

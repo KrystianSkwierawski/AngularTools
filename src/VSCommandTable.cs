@@ -20,9 +20,11 @@ namespace AngularTools
     /// </summary>
     internal sealed partial class PackageIds
     {
-        public const int MyMenuGroup = 0x0001;
-        public const int OpenConsoleCommand = 0x0002;
-        public const int ComponentTemplateSwitchCommand = 0x0003;
-        public const int ComponentStylesSwitchCommand = 0x0004;
+        public const int ToolsGroup = 0x0001;
+        public const int EditGroup = 0x0002;
+        public const int OpenConsoleCommand = 0x0003;
+        public const int ComponentTemplateSwitchCommand = 0x0004;
+        public const int ComponentStylesSwitchCommand = 0x0005;
+        public const int RenameComponentCommand = 0x0006;
     }
 }
