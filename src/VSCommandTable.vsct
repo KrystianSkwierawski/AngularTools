@@ -67,6 +67,7 @@
 		<KeyBinding guid="AngularTools" id="ComponentTemplateSwitchCommand" editor="guidVSStd97" mod1="Control" key1="0x32" />
 		<KeyBinding guid="AngularTools" id="ComponentStylesSwitchCommand" editor="guidVSStd97" mod1="Control" key1="0x33" />
 		<KeyBinding guid="AngularTools" id="OpenConsoleCommand" editor="guidVSStd97" mod1="Control" key1="0x34" />
+		<KeyBinding guid="AngularTools" id="RenameComponentCommand" editor="guidVSStd97" mod1="Control" key1="0x35" />
 	</KeyBindings>
 
 	<Symbols>

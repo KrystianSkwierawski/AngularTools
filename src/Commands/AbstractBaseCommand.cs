@@ -60,12 +60,6 @@ internal abstract class AbstractBaseCommand<T> : BaseCommand<T> where T : class,
     {
         await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync();
 
-        //int options = (int)(vsFindOptions.vsFindOptionsRegularExpression |
-        //  vsFindOptions.vsFindOptionsMatchCase |
-        //  vsFindOptions.vsFindOptionsMatchInHiddenText |
-        //  vsFindOptions.vsFindOptionsSearchSubfolders |
-        //  vsFindOptions.vsFindOptionsKeepModifiedDocumentsOpen);
-
         _dte.Find.FindReplace(vsFindAction.vsFindActionReplaceAll, find, 0, replace, target, FilesOfType: filesOfType);
     }
 
