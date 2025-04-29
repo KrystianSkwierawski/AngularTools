@@ -1,55 +1,37 @@
 <?xml version="1.0" encoding="utf-8"?>
 <PackageManifest Version="2.0.0" xmlns="http://schemas.microsoft.com/developer/vsx-schema/2011" xmlns:d="http://schemas.microsoft.com/developer/vsx-schema-design/2011">
-    <Metadata>
-        <Identity Id="AngularTools.1ddcbd14-b2ef-4ba0-bff8-d2b27660b977" Version="1.0" Language="en-US" Publisher="Krystian Skwierawski" />
-        <DisplayName>AngularTools</DisplayName>
-        <Description xml:space="preserve"># Angular Tools for Visual Studio 2022 (WIP)
+	<Metadata>
+		<Identity Id="AngularTools.1ddcbd14-b2ef-4ba0-bff8-d2b27660b977" Version="1.0" Language="en-US" Publisher="Krystian Skwierawski" />
+		<DisplayName>AngularTools</DisplayName>
+		<Description xml:space="preserve">
+Angular Tools is a Visual Studio extension designed to streamline Angular development. It provides a set of productivity-enhancing commands and features tailored for Angular projects, making your workflow faster and more efficient.
 
-**Angular Tools** is a Visual Studio extension designed to streamline Angular development. It provides a set of productivity-enhancing commands and features tailored for Angular projects, making your workflow faster and more efficient.
+Features:
+1. Rename Angular Component: Easily rename Angular components, including their associated files (.ts, .html, .scss, .spec.ts) and references across the project. Access via Edit > Rename Angular Component.
 
-## Features
+2. Switch Between .ts and .html Files: Quickly toggle between .ts and .html files. Access via Tools > Switch Between .ts/html or use shortcut Ctrl + 2.
 
-1. **Rename Angular Component**  
-   Easily rename Angular components, including their associated files (`.ts`, `.html`, `.scss`, `.spec.ts`) and references across the project.
+3. Switch Between .scss and .html Files: Quickly toggle between .scss and .html files. Access via Tools > Switch Between .scss/.html or use shortcut Ctrl + 3.
 
-*`Edit &gt; Rename Angular Component`*
-
-2. **Switch Between `.ts` and `.html` Files**  
-   Quickly toggle between `.ts` and `.html`.
-
-*`Tools &gt; Switch Between .ts/html` or `[shortcut Ctrl + 2]`*
-
-3. **Switch Between `.scss` and `.html` Files**  
-   Quickly toggle between `.scss` and `.html`.
-
-*`Tools &gt; Switch Between .scss/.html` or `[shortcut Ctrl + 3]`*
-
-4. **Open Console in Project Directory**  
-   Open a terminal directly in the current project directory for quick access to Angular CLI commands.
-
-*`Tools &gt; Open Console Here` or `[shortcut Ctrl + 4]`*
-
-## License
-
-This project is licensed under the [MIT License](LICENSE).
-</Description>
-        <MoreInfo>https://github.com/KrystianSkwierawski/AngularTools</MoreInfo>
-        <License>LICENSE.txt</License>
-        <ReleaseNotes>1.0.0</ReleaseNotes>
-        <Icon>Resources\Icon.png</Icon>
-        <PreviewImage>Resources\Icon.png</PreviewImage>
-        <Tags>Visual Studio, Angular, Tools, Extension</Tags>
-        <Preview>true</Preview>
-    </Metadata>
-    <Installation>
-        <InstallationTarget Id="Microsoft.VisualStudio.Community" Version="[17.0, 18.0)">
-            <ProductArchitecture>amd64</ProductArchitecture>
-        </InstallationTarget>
-    </Installation>
-    <Prerequisites>
-        <Prerequisite Id="Microsoft.VisualStudio.Component.CoreEditor" Version="[17.0,)" DisplayName="Visual Studio core editor" />
-    </Prerequisites>
-    <Assets>
-        <Asset Type="Microsoft.VisualStudio.VsPackage" d:Source="Project" d:ProjectName="%CurrentProject%" Path="|%CurrentProject%;PkgdefProjectOutputGroup|" />
-    </Assets>
+4. Open Console in Project Directory: Open a terminal directly in the current project directory for quick access to Angular CLI commands. Access via Tools > Open Console Here or use shortcut Ctrl + 4.
+        </Description>
+		<MoreInfo>https://github.com/KrystianSkwierawski/AngularTools</MoreInfo>
+		<License>LICENSE.txt</License>
+		<ReleaseNotes>1.0.0</ReleaseNotes>
+		<Icon>Resources\Icon.png</Icon>
+		<PreviewImage>Resources\Icon.png</PreviewImage>
+		<Tags>Visual Studio, Angular, Tools, Extension</Tags>
+		<Preview>true</Preview>
+	</Metadata>
+	<Installation>
+		<InstallationTarget Id="Microsoft.VisualStudio.Community" Version="[17.0, 18.0)">
+			<ProductArchitecture>amd64</ProductArchitecture>
+		</InstallationTarget>
+	</Installation>
+	<Prerequisites>
+		<Prerequisite Id="Microsoft.VisualStudio.Component.CoreEditor" Version="[17.0,)" DisplayName="Visual Studio core editor" />
+	</Prerequisites>
+	<Assets>
+		<Asset Type="Microsoft.VisualStudio.VsPackage" d:Source="Project" d:ProjectName="%CurrentProject%" Path="|%CurrentProject%;PkgdefProjectOutputGroup|" />
+	</Assets>
 </PackageManifest>
