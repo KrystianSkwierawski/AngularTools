@@ -48,6 +48,7 @@
   <ItemGroup>
     <Compile Include="Commands\AbstractBaseCommand.cs" />
     <Compile Include="Commands\RenameComponentCommand.cs" />
+    <Compile Include="Commands\ShowComponentPropertiesCommand.cs" />
     <Compile Include="Commands\TemplateStylesSwitchCommand.cs" />
     <Compile Include="Commands\ComponentTemplateSwitchCommand.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
@@ -96,6 +97,7 @@
     <Reference Include="System.Web.Extensions" />
     <Reference Include="System.Design" />
     <Reference Include="System.ComponentModel.Composition" />
+    <Reference Include="System.Drawing" />
   </ItemGroup>
   <ItemGroup>
     <PackageReference Include="Community.VisualStudio.VSCT" Version="16.0.29.6" PrivateAssets="all" />

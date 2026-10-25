@@ -26,5 +26,6 @@ namespace AngularTools
         public const int ComponentTemplateSwitchCommand = 0x0004;
         public const int ComponentStylesSwitchCommand = 0x0005;
         public const int RenameComponentCommand = 0x0006;
+        public const int ShowComponentPropertiesCommand = 0x0007;
     }
 }
