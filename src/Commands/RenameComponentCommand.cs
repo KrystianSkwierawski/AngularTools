@@ -1,144 +1,140 @@
-﻿using System.Globalization;
+using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using System.Text;
+using System.Web.Script.Serialization;
 using EnvDTE;
+using EnvDTE80;
 using Microsoft.VisualBasic;
+using Microsoft.VisualStudio.Shell.Interop;
+using Process = System.Diagnostics.Process;
 
 namespace AngularTools;
 
-/// <summary>
-/// Rename component
-/// </summary>
 [Command(PackageIds.RenameComponentCommand)]
 internal sealed class RenameComponentCommand : AbstractBaseCommand<RenameComponentCommand>
 {
+    private static bool _running;
+
     protected override async Task RunCommandAsync(OleMenuCmdEventArgs e)
     {
-        var document = await GetActiveDocumentAsync();
-
-        if (!IsDocumentValid(document.FullName) || !document.Name.EndsWith(".component.ts"))
+        await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync();
+        if (_running) return;
+        _running = true;
+        try
         {
-            return;
-        }
+            var dte = await VS.GetServiceAsync<SDTE, DTE2>();
+            var selected = dte.ActiveDocument?.FullName;
+            if (dte.ActiveWindow?.Kind == EnvDTE.Constants.vsWindowKindSolutionExplorer &&
+                dte.ToolWindows.SolutionExplorer.SelectedItems is Array items && items.Length == 1 &&
+                items.GetValue(0) is UIHierarchyItem item && item.Object is ProjectItem projectItem && projectItem.FileCount > 0)
+                selected = projectItem.FileNames[1];
+            if (!IsDocumentValid(selected)) throw new InvalidOperationException("Select an Angular file first.");
+            var defaultName = Path.GetFileNameWithoutExtension(selected);
+            if (defaultName.EndsWith(".spec") || defaultName.EndsWith(".test")) defaultName = Path.GetFileNameWithoutExtension(defaultName);
+            var name = Interaction.InputBox("New name (e.g. user-profile or UserProfile). Existing Angular suffix is retained.\nUse a trailing dot (user-profile.) for a suffixless name.", "Rename Angular Component", defaultName).Trim();
+            if (string.IsNullOrWhiteSpace(name) || name == defaultName) return;
 
-        var newComponentName = Interaction.InputBox("Enter the new component name:", "Rename Angular Component", document.Name);
+            var script = Path.Combine(Path.GetDirectoryName(typeof(RenameComponentCommand).Assembly.Location), "Rename", "rename.cjs");
+            var json = await RunNodeAsync(script, Quote(selected) + " " + Quote(name));
+            var serializer = new JavaScriptSerializer { MaxJsonLength = int.MaxValue };
+            var plan = serializer.Deserialize<RenamePlan>(json);
+            await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync();
+            // A disk-based refactoring must never overwrite unsaved editor text.
+            foreach (Document document in dte.Documents)
+                if (InWorkspace(plan.root, document.FullName) && !document.Saved)
+                    throw new InvalidOperationException("Save your workspace documents before renaming: " + document.FullName);
 
-        if (string.IsNullOrWhiteSpace(newComponentName) || document.Name == newComponentName || !newComponentName.EndsWith(".component.ts"))
-        {
-            return;
-        }
-
-        await RenameComponentAsync(document, newComponentName);
-    }
-
-    private async Task RenameComponentAsync(ActiveDocument document, string newComponentName)
-    {
-        await Task.WhenAll
-        (
-            RenameClassNameAsync(document.Name, newComponentName),
-            AdjustAttributesAsync(document.Name, newComponentName),
-            AdjustPathsAsync(document.Name, newComponentName),
-            AdjustSelectorsAsync(document.Name, newComponentName)
-        );
-
-        await SaveActiveDocumentAsync();
-        RenameFilesAndDirectory(document, newComponentName);
-    }
-
-    private async Task RenameClassNameAsync(string oldName, string newName)
-    {
-        var find = GetClassName(oldName);
-        var replace = GetClassName(newName);
-
-        await FindAndReplaceAsync(find, replace, vsFindTarget.vsFindTargetCurrentProject, "*.ts");
-        ActivityLog.LogInformation(Source, "Renamed class name");
-    }
-
-    private async Task AdjustAttributesAsync(string oldName, string newName)
-    {
-        var oldBaseName = Path.GetFileNameWithoutExtension(oldName);
-        var newBaseName = Path.GetFileNameWithoutExtension(newName);
-
-        await Task.WhenAll
-        (
-            FindAndReplaceAsync($"{oldBaseName}.html", $"{newBaseName}.html", vsFindTarget.vsFindTargetCurrentProject, "*.ts"),
-            FindAndReplaceAsync($"{oldBaseName}.scss", $"{newBaseName}.scss", vsFindTarget.vsFindTargetCurrentProject, "*.ts")
-        );
-
-        ActivityLog.LogInformation(Source, "Adjusted attributes");
-    }
-
-    private async Task AdjustPathsAsync(string oldName, string newName)
-    {
-        var find = GetComponentPath(oldName);
-        var replace = GetComponentPath(newName);
-
-        await FindAndReplaceAsync(find, replace, vsFindTarget.vsFindTargetCurrentProject, "*.ts");
-        ActivityLog.LogInformation(Source, "Adjusted paths");
-    }
-
-    private async Task AdjustSelectorsAsync(string oldName, string newName)
-    {
-        var find = GetComponentSelector(oldName);
-        var replace = GetComponentSelector(newName);
-
-        await FindAndReplaceAsync(find, replace, vsFindTarget.vsFindTargetCurrentProject, "*.html;*.ts");
-        ActivityLog.LogInformation(Source, "Adjusted selectors");
-    }
-
-    private void RenameFilesAndDirectory(ActiveDocument document, string newName)
-    {
-        RenameFiles(document, newName);
-        RenameDirectory(document, newName);
-    }
-
-    private static void RenameFiles(ActiveDocument document, string newName)
-    {
-        var oldBaseName = Path.GetFileNameWithoutExtension(document.Name);
-        var newBaseName = Path.GetFileNameWithoutExtension(newName);
-
-        foreach (var extension in new[] { ".html", ".ts", ".spec.ts", ".scss" })
-        {
-            var oldPath = $"{document.Path}{oldBaseName}{extension}";
-
-            if (IsDocumentValid(oldPath))
+            var reopened = new List<RenameEntry>();
+            try
             {
-                Microsoft.VisualBasic.FileIO.FileSystem.RenameFile(oldPath, $"{newBaseName}{extension}");
+                foreach (Document document in dte.Documents.Cast<Document>().ToArray())
+                {
+                    var fullName = document.FullName;
+                    var entry = plan.entries.FirstOrDefault(x => string.Equals(x.from, fullName, StringComparison.OrdinalIgnoreCase));
+                    if (entry == null) continue;
+                    document.Close(vsSaveChanges.vsSaveChangesNo);
+                    reopened.Add(entry);
+                }
+                await RunNodeAsync(script, "--apply", json);
             }
+            finally
+            {
+                await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync();
+                foreach (var entry in reopened)
+                {
+                    var file = File.Exists(entry.to) ? entry.to : entry.from;
+                    if (File.Exists(file)) dte.ItemOperations.OpenFile(file);
+                }
+            }
+            if (File.Exists(plan.selected)) dte.ItemOperations.OpenFile(plan.selected);
+            ActivityLog.LogInformation(Source, $"Renamed Angular file; updated {plan.entries.Count} files.");
+            await VS.StatusBar.ShowMessageAsync($"Angular rename complete: {plan.entries.Count} files updated.");
         }
-
-        ActivityLog.LogInformation(Source, "Renamed files");
+        finally { _running = false; }
     }
 
-    private static void RenameDirectory(ActiveDocument document, string newName)
+    private static bool InWorkspace(string root, string file) => file != null &&
+        Path.GetFullPath(file).StartsWith(Path.GetFullPath(root).TrimEnd(Path.DirectorySeparatorChar) + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase);
+
+    private static string Quote(string value)
     {
-        var oldDirName = document.Name.Split('.')[0];
-        var newDirName = newName.Split('.')[0];
-
-        Directory.Move
-        (
-            document.Path,
-            document.Path.Replace(oldDirName, newDirName)
-        );
-
-        ActivityLog.LogInformation(Source, "Renamed directory");
+        var result = new StringBuilder("\"");
+        var slashes = 0;
+        foreach (var c in value)
+        {
+            if (c == '\\') { slashes++; continue; }
+            result.Append('\\', c == '"' ? slashes * 2 + 1 : slashes);
+            result.Append(c);
+            slashes = 0;
+        }
+        return result.Append('\\', slashes * 2).Append('"').ToString();
     }
 
-    private static string GetClassName(string fileName)
+    private static async System.Threading.Tasks.Task<string> RunNodeAsync(string script, string arguments, string input = null)
     {
-        var name = Path.GetFileNameWithoutExtension(fileName);
-        var parts = name.Split(['-', '.'], StringSplitOptions.RemoveEmptyEntries);
-        return string.Concat(parts.Select(part => CultureInfo.CurrentCulture.TextInfo.ToTitleCase(part)));
+        return await Task.Run(async () =>
+        {
+            var start = new ProcessStartInfo("node.exe", Quote(script) + " " + arguments)
+            {
+                UseShellExecute = false, CreateNoWindow = true,
+                RedirectStandardOutput = true, RedirectStandardError = true, RedirectStandardInput = true,
+                StandardOutputEncoding = Encoding.UTF8, StandardErrorEncoding = Encoding.UTF8,
+                WorkingDirectory = Path.GetDirectoryName(script)
+            };
+            Process process;
+            try { process = Process.Start(start); }
+            catch (System.ComponentModel.Win32Exception ex) { throw new InvalidOperationException("Node.js must be installed and available on PATH. Restart Visual Studio after installing Node.js.", ex); }
+            using (process)
+            {
+                var output = process.StandardOutput.ReadToEndAsync();
+                var error = process.StandardError.ReadToEndAsync();
+                if (input != null)
+                {
+                    var bytes = Encoding.UTF8.GetBytes(input);
+                    await process.StandardInput.BaseStream.WriteAsync(bytes, 0, bytes.Length);
+                }
+                process.StandardInput.Close();
+                var result = await output;
+                var message = await error;
+                process.WaitForExit();
+                if (process.ExitCode != 0) throw new InvalidOperationException(message);
+                return result;
+            }
+        });
     }
 
-    private static string GetComponentPath(string fileName)
+    public sealed class RenamePlan
     {
-        var baseName = Path.GetFileNameWithoutExtension(fileName).Replace(".component", string.Empty);
-        return $"{baseName}/{Path.GetFileNameWithoutExtension(fileName)}";
+        public string root { get; set; }
+        public string selected { get; set; }
+        public List<RenameEntry> entries { get; set; }
     }
 
-    private static string GetComponentSelector(string fileName)
+    public sealed class RenameEntry
     {
-        return $"app-{fileName.Split('.')[0]}";
+        public string from { get; set; }
+        public string to { get; set; }
     }
 }

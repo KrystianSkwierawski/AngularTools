@@ -63,6 +63,12 @@
 		</Buttons>
 	</Commands>
 
+	<CommandPlacements>
+		<CommandPlacement guid="AngularTools" id="RenameComponentCommand" priority="0x0800">
+			<Parent guid="guidSHLMainMenu" id="IDG_VS_CTXT_ITEM_OPEN" />
+		</CommandPlacement>
+	</CommandPlacements>
+
 	<KeyBindings>
 		<KeyBinding guid="AngularTools" id="ComponentTemplateSwitchCommand" editor="guidVSStd97" mod1="Control" key1="0x32" />
 		<KeyBinding guid="AngularTools" id="ComponentStylesSwitchCommand" editor="guidVSStd97" mod1="Control" key1="0x33" />
