@@ -29,7 +29,7 @@ internal abstract class AbstractBaseCommand<T> : BaseCommand<T> where T : class,
 
         var document = _dte.ActiveDocument;
 
-        return new ActiveDocument(document?.FullName, document?.Name, document?.Path);
+        return new ActiveDocument(document?.FullName, document?.Name, document?.Path, document?.Selection as TextSelection);
     }
 
     protected async Task SaveActiveDocumentAsync()
@@ -89,7 +89,7 @@ internal abstract class AbstractBaseCommand<T> : BaseCommand<T> where T : class,
         }
     }
 
-    protected record ActiveDocument(string FullName, string Name, string Path);
+    protected record ActiveDocument(string FullName, string Name, string Path, TextSelection TextSelection);
 
     #endregion
 }

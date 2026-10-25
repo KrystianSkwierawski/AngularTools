@@ -60,14 +60,32 @@
 					<LocCanonicalName>.AngularTools.RenameComponentCommand</LocCanonicalName>
 				</Strings>
 			</Button>
+
+			<Button guid="AngularTools" id="ShowComponentPropertiesCommand" priority="1" type="Button">
+				<Parent guid="AngularTools" id="ToolsGroup" />
+				<Icon guid="ImageCatalogGuid" id="Property" />
+				<CommandFlag>IconIsMoniker</CommandFlag>
+				<Strings>
+					<ButtonText>Show Propertie</ButtonText>
+					<LocCanonicalName>.AngularTools.RenameComponentCommand</LocCanonicalName>
+				</Strings>
+			</Button>
+
 		</Buttons>
 	</Commands>
+
+	<CommandPlacements>
+		<CommandPlacement guid="AngularTools" id="RenameComponentCommand" priority="0x0800">
+			<Parent guid="guidSHLMainMenu" id="IDG_VS_CTXT_ITEM_OPEN" />
+		</CommandPlacement>
+	</CommandPlacements>
 
 	<KeyBindings>
 		<KeyBinding guid="AngularTools" id="ComponentTemplateSwitchCommand" editor="guidVSStd97" mod1="Control" key1="0x32" />
 		<KeyBinding guid="AngularTools" id="ComponentStylesSwitchCommand" editor="guidVSStd97" mod1="Control" key1="0x33" />
 		<KeyBinding guid="AngularTools" id="OpenConsoleCommand" editor="guidVSStd97" mod1="Control" key1="0x34" />
 		<KeyBinding guid="AngularTools" id="RenameComponentCommand" editor="guidVSStd97" mod1="Control" key1="0x35" />
+		<KeyBinding guid="AngularTools" id="ShowComponentPropertiesCommand" editor="guidVSStd97" mod1="Control" key1="0x37" />
 	</KeyBindings>
 
 	<Symbols>
@@ -79,6 +97,7 @@
 			<IDSymbol name="ComponentTemplateSwitchCommand" value="4" />
 			<IDSymbol name="ComponentStylesSwitchCommand" value="5" />
 			<IDSymbol name="RenameComponentCommand" value="6" />
+			<IDSymbol name="ShowComponentPropertiesCommand" value="7" />
 		</GuidSymbol>
 	</Symbols>
 </CommandTable>
