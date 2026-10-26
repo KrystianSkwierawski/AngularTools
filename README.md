@@ -39,6 +39,8 @@ The refactoring supports:
 - Path references in JSON/JSONC (including tsconfig aliases/globs) and explicit Visual Studio project item paths.
 - Preflight collision checks, UTF-8/BOM and newline preservation, stale-plan detection and rollback on write/move errors. Unsaved workspace documents block the operation. Affected saved editor buffers are closed and reopened to avoid stale content overwriting the result.
 
+During rename, a progress window shows the current stage and elapsed time. Folder changes are delegated to the Visual Studio project system (or a native filesystem move for folders outside its hierarchy), including rollback. Transient folder locks are retried briefly; persistent failures identify the affected folder. No administrator privileges are requested.
+
 Scope is the enclosing `angular.json`/`nx.json` workspace, falling back to the nearest package root. Dependencies, generated build folders, source-control metadata and symlinks are excluded. Selectors are updated across that workspace (also suitable for NgModule applications); duplicate or conflicting selectors stop the operation before writes.
 
 This is not a full Angular template type-checker. Complex/computed selectors, computed resource URLs, ambiguous exports and class names inconsistent with filenames require manual refactoring and are rejected. Arbitrary application strings, dynamically constructed paths, custom decorators, MSBuild property expressions and custom naming schemes are not inferred. Use source control to review changes; the filesystem transaction is not part of Visual Studio's text-editor Undo stack.

@@ -390,6 +390,7 @@ FodyWeavers.xsd
 .history/
 
 # Windows Installer files from build outputs
+*.vsix
 *.cab
 *.msi
 *.msix

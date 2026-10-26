@@ -1,13 +1,13 @@
 <?xml version="1.0" encoding="utf-8"?>
 <PackageManifest Version="2.0.0" xmlns="http://schemas.microsoft.com/developer/vsx-schema/2011" xmlns:d="http://schemas.microsoft.com/developer/vsx-schema-design/2011">
     <Metadata>
-        <Identity Id="AngularTools.1ddcbd14-b2ef-4ba0-bff8-d2b27660b977" Version="1.0" Language="en-US" Publisher="Krystian Skwierawski" />
+        <Identity Id="AngularTools.1ddcbd14-b2ef-4ba0-bff8-d2b27660b977" Version="1.1.0" Language="en-US" Publisher="Krystian Skwierawski" />
         <DisplayName>AngularTools</DisplayName>
         <Description xml:space="preserve">Visual Studio extension designed to streamline Angular development. It provides a set of productivity-enhancing commands and features tailored for Angular projects, making your workflow faster and more efficient.
         </Description>
         <MoreInfo>https://github.com/KrystianSkwierawski/AngularTools</MoreInfo>
         <License>LICENSE.txt</License>
-        <ReleaseNotes>1.0.0</ReleaseNotes>
+        <ReleaseNotes>1.1.0: Safe Angular rename with semantic references, IDE folder renaming, progress feedback and component property navigation.</ReleaseNotes>
         <Icon>Resources\Icon.png</Icon>
         <PreviewImage>Resources\Icon.png</PreviewImage>
         <Tags>Visual Studio, Angular, Tools, Extension</Tags>

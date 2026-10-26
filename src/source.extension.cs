@@ -12,7 +12,7 @@ namespace AngularTools
         public const string Description = @"Visual Studio extension designed to streamline Angular development. It provides a set of productivity-enhancing commands and features tailored for Angular projects, making your workflow faster and more efficient.
         ";
         public const string Language = "en-US";
-        public const string Version = "1.0";
+        public const string Version = "1.1.0";
         public const string Author = "Krystian Skwierawski";
         public const string Tags = "Visual Studio, Angular, Tools, Extension";
     }
