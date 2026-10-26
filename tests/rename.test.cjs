@@ -295,6 +295,58 @@ test('a newly added reference after planning invalidates the transaction', t => 
   assert.ok(fs.existsSync(f.file('src/old.component.ts')));
 });
 
+test('IDE directory mover is also used for rollback after a write failure', t => {
+  const f = fixture(t, { 'src/old/old.component.ts': component() });
+  const p = f.rename('src/old/old.component.ts', 'fresh');
+  const moves = [];
+  const mover = (from, to) => { moves.push([from, to]); fs.renameSync(from, to); };
+  const write = fs.writeFileSync;
+  let failOnce = true;
+  fs.writeFileSync = (...args) => { if (failOnce) { failOnce = false; throw new Error('simulated write failure'); } return write(...args); };
+  try { assert.throws(() => apply(p, mover), /simulated write failure/); }
+  finally { fs.writeFileSync = write; }
+  assert.deepEqual(moves, [[p.directory.from, p.directory.to], [p.directory.to, p.directory.from]]);
+  for (const e of p.entries) assert.deepEqual(fs.readFileSync(e.from), Buffer.from(e.before, 'base64'));
+});
+
+test('IDE protocol requests directory rename without waiting for stdin EOF', async t => {
+  const { spawn } = require('node:child_process');
+  const { createInterface } = require('node:readline');
+  const f = fixture(t, { 'src/old/old.component.ts': component(), 'src/old/data.bin': Buffer.from([0, 255]) });
+  const p = f.rename('src/old/old.component.ts', 'fresh');
+  const child = spawn(process.execPath, [path.resolve(__dirname, '../src/Rename/rename.cjs'), '--apply-ide']);
+  t.after(() => child.kill());
+  const lines = createInterface({ input: child.stdout });
+  let error = '', requests = 0, result;
+  child.stderr.on('data', data => { error += data; });
+  const finished = new Promise((resolve, reject) => {
+    const timeout = setTimeout(() => { child.kill(); reject(new Error('IDE protocol timed out')); }, 10000);
+    child.on('error', e => { clearTimeout(timeout); reject(e); });
+    child.on('close', code => { clearTimeout(timeout); code === 0 ? resolve() : reject(new Error(error)); });
+  });
+  lines.on('line', line => {
+    const message = JSON.parse(line);
+    if (message.operation === 'renameDirectory') {
+      requests++;
+      try { fs.renameSync(message.from, message.to); child.stdin.write(JSON.stringify({ok:true}) + '\n'); }
+      catch (e) { child.stdin.write(JSON.stringify({ok:false,error:e.message}) + '\n'); }
+    } else result = message;
+  });
+  child.stdin.write(JSON.stringify(p) + '\n');
+  await finished;
+  assert.equal(requests, 1);
+  assert.equal(result.selected, f.file('src/fresh/fresh.component.ts'));
+  assert.match(f.read('src/fresh/fresh.component.ts'), /FreshComponent/);
+});
+
+test('failed IDE directory rename leaves the workspace untouched', t => {
+  const f = fixture(t, { 'src/old/old.component.ts': component() });
+  const p = f.rename('src/old/old.component.ts', 'fresh');
+  assert.throws(() => apply(p, () => { throw new Error('folder remains locked'); }), /folder remains locked/);
+  for (const e of p.entries) assert.deepEqual(fs.readFileSync(e.from), Buffer.from(e.before, 'base64'));
+  assert.equal(fs.existsSync(p.directory.to), false);
+});
+
 test('renames attribute selectors immediately before self-closing slash', t => {
   const f = fixture(t, {
     'src/old.directive.ts': "import {Directive} from '@angular/core'; @Directive({selector:'[libOld]'}) export class OldDirective {}",

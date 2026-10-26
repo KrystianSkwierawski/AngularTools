@@ -596,7 +596,7 @@ function plan(selected, input, root = findRoot(selected), tsOverride) {
   return { root, directory, selected: relocated(selected), entries, snapshots };
 }
 
-function apply(plan) {
+function apply(plan, moveDirectory = fs.renameSync) {
   // Revalidate the complete snapshot immediately before touching disk.
   if (plan.snapshots) {
     const current = walk(plan.root);
@@ -615,7 +615,7 @@ function apply(plan) {
   const written = [];
   let directoryMoved = false;
   try {
-    if (plan.directory) { fs.renameSync(plan.directory.from, plan.directory.to); directoryMoved = true; }
+    if (plan.directory) { moveDirectory(plan.directory.from, plan.directory.to); directoryMoved = true; }
     for (const e of plan.entries) {
       const current = plan.directory && inside(plan.directory.from, e.from) ? path.join(plan.directory.to, path.relative(plan.directory.from, e.from)) : e.from;
       if (current !== e.to) { fs.renameSync(current, e.to); moved.push([current, e.to]); }
@@ -626,7 +626,7 @@ function apply(plan) {
     const undo = fn => { try { fn(); } catch (e) { failures.push(e.message); } };
     for (const e of written.reverse()) undo(() => fs.writeFileSync(e.to, Buffer.from(e.before, 'base64')));
     for (const [from, to] of moved.reverse()) undo(() => fs.renameSync(to, from));
-    if (directoryMoved) undo(() => fs.renameSync(plan.directory.to, plan.directory.from));
+    if (directoryMoved) undo(() => moveDirectory(plan.directory.to, plan.directory.from));
     if (failures.length) error.message += '\nRollback needs attention: ' + failures.join('\n');
     throw error;
   }
@@ -636,7 +636,30 @@ function apply(plan) {
 module.exports = { plan, apply, findRoot, sourceFor, names };
 if (require.main === module) {
   try {
-    const result = process.argv[2] === '--apply' ? apply(JSON.parse(fs.readFileSync(0, 'utf8'))) : plan(process.argv[2], process.argv[3]);
-    process.stdout.write(JSON.stringify(result));
+    let result;
+    if (process.argv[2] === '--apply-ide') {
+      // Keep stdin open for acknowledgements from Visual Studio. The same
+      // directory mover is used for rollback, so the project hierarchy follows
+      // the filesystem in both directions.
+      let pending = Buffer.alloc(0);
+      const readLine = () => {
+        while (!pending.includes(10)) {
+          const chunk = Buffer.alloc(65536);
+          const count = fs.readSync(0, chunk, 0, chunk.length, null);
+          if (!count) fail('Visual Studio closed the rename connection.');
+          pending = Buffer.concat([pending, chunk.subarray(0, count)]);
+        }
+        const end = pending.indexOf(10), line = pending.subarray(0, end).toString('utf8');
+        pending = pending.subarray(end + 1);
+        return JSON.parse(line);
+      };
+      const request = readLine();
+      result = apply(request, (from, to) => {
+        fs.writeSync(1, JSON.stringify({ operation: 'renameDirectory', from, to }) + '\n');
+        const reply = readLine();
+        if (!reply.ok) fail(reply.error || 'Visual Studio could not rename the directory.');
+      });
+    } else result = process.argv[2] === '--apply' ? apply(JSON.parse(fs.readFileSync(0, 'utf8'))) : plan(process.argv[2], process.argv[3]);
+    process.stdout.write(JSON.stringify(result) + '\n');
   } catch (error) { process.stderr.write(error.message); process.exitCode = 1; }
 }
