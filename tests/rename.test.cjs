@@ -332,7 +332,9 @@ test('IDE protocol requests directory rename without waiting for stdin EOF', asy
       catch (e) { child.stdin.write(JSON.stringify({ok:false,error:e.message}) + '\n'); }
     } else result = message;
   });
-  child.stdin.write(JSON.stringify(p) + '\n');
+  // C# ReadOutputAsync used AppendLine (CRLF), then RunNodeAsync appended LF.
+  // The extra empty frame must never be parsed as the directory acknowledgement.
+  child.stdin.write(JSON.stringify(p) + '\r\n\n');
   await finished;
   assert.equal(requests, 1);
   assert.equal(result.selected, f.file('src/fresh/fresh.component.ts'));
@@ -345,6 +347,33 @@ test('failed IDE directory rename leaves the workspace untouched', t => {
   assert.throws(() => apply(p, () => { throw new Error('folder remains locked'); }), /folder remains locked/);
   for (const e of p.entries) assert.deepEqual(fs.readFileSync(e.from), Buffer.from(e.before, 'base64'));
   assert.equal(fs.existsSync(p.directory.to), false);
+});
+
+test('reuses the TypeScript project for equivalent configs and template guards', t => {
+  const config = JSON.stringify({ compilerOptions: { experimentalDecorators: true }, include: ['src/**/*.ts'] });
+  const f = fixture(t, {
+    'tsconfig.json': config,
+    'tsconfig.app.json': config,
+    'tsconfig.spec.json': config,
+    'src/old.directive.ts': `import {Directive, Input} from '@angular/core';
+      @Directive({selector:'[appOld]'}) export class OldDirective {
+        @Input() appOldOf: any; @Input() appOldWhen: any;
+        static ngTemplateGuard_appOldOf: 'binding';
+        static ngTemplateGuard_appOldWhen: 'binding';
+      }`,
+  });
+  let created = 0, disposed = 0;
+  const measuredTs = { ...ts, createLanguageService(...args) {
+    created++;
+    const service = ts.createLanguageService(...args), dispose = service.dispose;
+    service.dispose = () => { disposed++; dispose(); };
+    return service;
+  }};
+  const p = plan(f.file('src/old.directive.ts'), 'fresh', f.root, measuredTs);
+  assert.equal(created, 1, 'Equivalent projects and guards must not rebuild the program');
+  assert.equal(disposed, 1);
+  apply(p);
+  assert.match(f.read('src/fresh.directive.ts'), /ngTemplateGuard_appFreshWhen/);
 });
 
 test('renames attribute selectors immediately before self-closing slash', t => {

@@ -12,6 +12,7 @@ const key = p => process.platform === 'win32' ? path.resolve(p).toLowerCase() : 
 const inside = (root, p) => { const r = path.relative(root, p); return r === '' || (!r.startsWith('..' + path.sep) && r !== '..' && !path.isAbsolute(r)); };
 const escape = s => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 const fail = message => { throw new Error(message); };
+const progress = message => { if (require.main === module) fs.writeSync(2, 'ANGULAR_TOOLS_PROGRESS:' + message + '\n'); };
 
 function walk(root) {
   const files = [];
@@ -70,6 +71,7 @@ function plan(selected, input, root = findRoot(selected), tsOverride) {
   const oldStem = path.basename(source, '.ts');
   const n = names(input, oldStem);
   if (oldStem === n.stem) fail('The new name is unchanged.');
+  progress('Scanning workspace files...');
   const files = walk(root);
   const dir = path.dirname(source);
   const folderName = path.basename(dir);
@@ -124,6 +126,7 @@ function plan(selected, input, root = findRoot(selected), tsOverride) {
   if (oldSymbol !== expected && !(functionStyle && oldSymbol === expected[0].toLowerCase() + expected.slice(1)))
     fail('The exported name does not follow the filename convention: ' + oldSymbol + '. Rename it with the TypeScript symbol refactoring first.');
 
+  progress('Reading TypeScript project configurations...');
   const configs = files.filter(f => /^tsconfig.*\.json$/.test(path.basename(f))).map(f => {
     const read = ts.readConfigFile(f, ts.sys.readFile);
     if (read.error) fail(ts.flattenDiagnosticMessageText(read.error.messageText, '\n'));
@@ -133,21 +136,50 @@ function plan(selected, input, root = findRoot(selected), tsOverride) {
     return { file: f, options: parsed.options, files: parsed.fileNames };
   });
   if (!configs.length) fail('No tsconfig found in the workspace.');
-  const optionsFor = f => configs.filter(c => c.files.some(p => key(p) === key(f))).sort((a, b) => b.file.length - a.file.length)[0]?.options || configs[0].options;
+  const fileOptions = new Map();
+  for (const c of [...configs].sort((a, b) => b.file.length - a.file.length))
+    for (const f of c.files) if (!fileOptions.has(key(f))) fileOptions.set(key(f), c.options);
+  const optionsFor = f => fileOptions.get(key(f)) || configs[0].options;
+  const registry = ts.createDocumentRegistry();
+  const services = new Map();
+  const canonical = value => Array.isArray(value) ? value.map(canonical) : value && typeof value === 'object'
+    ? Object.fromEntries(Object.keys(value).sort().map(k => [k, canonical(value[k])])) : value;
+  const uniqueConfigs = [...new Map(configs.map(c => [JSON.stringify(canonical(c.options)), c])).values()];
+  const snapshotsByFile = new Map();
+  const resolutionCaches = new Map();
+  const resolveWith = (specifier, from, options) => {
+    if (!resolutionCaches.has(options)) resolutionCaches.set(options, ts.createModuleResolutionCache(root, key, options));
+    return ts.resolveModuleName(specifier, from, options, ts.sys, resolutionCaches.get(options)).resolvedModule?.resolvedFileName;
+  };
+  const isModuleLiteral = (node, tree) => {
+    const p = node.parent;
+    return (ts.isImportDeclaration(p) || ts.isExportDeclaration(p)) && p.moduleSpecifier === node ||
+      ts.isCallExpression(p) && p.arguments[0] === node && (p.expression.kind === ts.SyntaxKind.ImportKeyword || p.expression.getText(tree) === 'require') ||
+      ts.isLiteralTypeNode(p) && ts.isImportTypeNode(p.parent);
+  };
   // Each configuration may use different aliases; collect semantic references in
   // each project, retaining import aliases and shorthand property names.
-  function renameIdentifier(identifier, replacement) { for (const config of configs) {
+  function renameIdentifier(identifier, replacement) { for (const [index, config] of uniqueConfigs.entries()) {
+    progress(`Analyzing ${identifier.text}: TypeScript configuration ${index + 1}/${uniqueConfigs.length}...`);
     const options = { ...config.options, allowNonTsExtensions: true };
     const host = {
       getScriptFileNames: () => [...asts.keys()], getScriptVersion: () => '0',
-      getScriptSnapshot: f => { const t = texts.get(f) ?? ts.sys.readFile(f); return t === undefined ? undefined : ts.ScriptSnapshot.fromString(t); },
+      getScriptSnapshot: f => {
+        const id = key(f);
+        if (!snapshotsByFile.has(id)) {
+          const t = texts.get(path.resolve(f)) ?? ts.sys.readFile(f);
+          snapshotsByFile.set(id, t === undefined ? undefined : ts.ScriptSnapshot.fromString(t));
+        }
+        return snapshotsByFile.get(id);
+      },
       getCurrentDirectory: () => root, getCompilationSettings: () => options,
       getDefaultLibFileName: o => ts.getDefaultLibFilePath(o),
       fileExists: ts.sys.fileExists, readFile: ts.sys.readFile, readDirectory: ts.sys.readDirectory,
       directoryExists: ts.sys.directoryExists, getDirectories: ts.sys.getDirectories,
     };
-    const service = ts.createLanguageService(host);
-    try {
+    if (!services.has(config)) services.set(config, ts.createLanguageService(host, registry));
+    const service = services.get(config);
+    {
       const refs = service.findRenameLocations(source, identifier.getStart(ast), false, false, true);
       if (!refs?.length) fail('TypeScript could not resolve the exported symbol.');
       const program = service.getProgram();
@@ -172,18 +204,17 @@ function plan(selected, input, root = findRoot(selected), tsOverride) {
         if (collision) fail('The new symbol name is already declared in this scope in ' + tree.fileName + ': ' + replacement);
         edit(path.resolve(r.fileName), r.textSpan.start, r.textSpan.length, (r.prefixText || '') + replacement + (r.suffixText || ''));
       }
-    } finally { service.dispose(); }
+    }
   } }
+  try {
   renameIdentifier(declaration.name, newSymbol);
 
-  const resolve = (specifier, from) => ts.resolveModuleName(specifier, from, optionsFor(from), ts.sys).resolvedModule?.resolvedFileName;
+  progress('Updating imports and component metadata...');
+  const resolve = (specifier, from) => resolveWith(specifier, from, optionsFor(from));
   for (const [f, tree] of asts) {
     const visit = node => {
       if (ts.isStringLiteralLike(node)) {
-        const p = node.parent;
-        const module = (ts.isImportDeclaration(p) || ts.isExportDeclaration(p)) && p.moduleSpecifier === node ||
-          ts.isCallExpression(p) && p.arguments[0] === node && (p.expression.kind === ts.SyntaxKind.ImportKeyword || p.expression.getText(tree) === 'require') ||
-          ts.isLiteralTypeNode(p) && ts.isImportTypeNode(p.parent);
+        const module = isModuleLiteral(node, tree);
         if (module) {
           const target = resolve(node.text, f);
           if (target && (relocated(target) !== target || relocated(f) !== f)) {
@@ -592,11 +623,14 @@ function plan(selected, input, root = findRoot(selected), tsOverride) {
       entries.push({ from: f, to, before: before.toString('base64'), after: after.toString('base64') });
     }
   }
-  const snapshots = files.map(f => ({ file: f, hash: digest(fs.readFileSync(f)) }));
+  progress('Preparing transaction and checking file snapshots...');
+  const snapshots = files.map(f => ({ file: f, hash: digest(originals.get(f) || fs.readFileSync(f)) }));
   return { root, directory, selected: relocated(selected), entries, snapshots };
+  } finally { for (const service of services.values()) service.dispose(); }
 }
 
 function apply(plan, moveDirectory = fs.renameSync) {
+  progress('Validating the plan before saving changes...');
   // Revalidate the complete snapshot immediately before touching disk.
   if (plan.snapshots) {
     const current = walk(plan.root);
@@ -615,6 +649,7 @@ function apply(plan, moveDirectory = fs.renameSync) {
   const written = [];
   let directoryMoved = false;
   try {
+    progress('Applying file and folder changes...');
     if (plan.directory) { moveDirectory(plan.directory.from, plan.directory.to); directoryMoved = true; }
     for (const e of plan.entries) {
       const current = plan.directory && inside(plan.directory.from, e.from) ? path.join(plan.directory.to, path.relative(plan.directory.from, e.from)) : e.from;
@@ -643,15 +678,19 @@ if (require.main === module) {
       // the filesystem in both directions.
       let pending = Buffer.alloc(0);
       const readLine = () => {
-        while (!pending.includes(10)) {
-          const chunk = Buffer.alloc(65536);
-          const count = fs.readSync(0, chunk, 0, chunk.length, null);
-          if (!count) fail('Visual Studio closed the rename connection.');
-          pending = Buffer.concat([pending, chunk.subarray(0, count)]);
+        for (;;) {
+          while (!pending.includes(10)) {
+            const chunk = Buffer.alloc(65536);
+            const count = fs.readSync(0, chunk, 0, chunk.length, null);
+            if (!count) fail('Visual Studio closed the rename connection.');
+            pending = Buffer.concat([pending, chunk.subarray(0, count)]);
+          }
+          const end = pending.indexOf(10), line = pending.subarray(0, end).toString('utf8');
+          pending = pending.subarray(end + 1);
+          if (!line.trim()) continue;
+          try { return JSON.parse(line); }
+          catch { fail('Invalid JSON message from Visual Studio. No complete acknowledgement was received.'); }
         }
-        const end = pending.indexOf(10), line = pending.subarray(0, end).toString('utf8');
-        pending = pending.subarray(end + 1);
-        return JSON.parse(line);
       };
       const request = readLine();
       result = apply(request, (from, to) => {

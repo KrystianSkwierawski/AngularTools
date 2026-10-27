@@ -45,7 +45,7 @@ internal sealed class RenameComponentCommand : AbstractBaseCommand<RenameCompone
             await VS.StatusBar.ShowMessageAsync("Angular rename: analyzing workspace...");
 
             var script = Path.Combine(Path.GetDirectoryName(typeof(RenameComponentCommand).Assembly.Location), "Rename", "rename.cjs");
-            var json = await RunNodeAsync(script, Quote(selected) + " " + Quote(name));
+            var json = await RunNodeAsync(script, Quote(selected) + " " + Quote(name), progress: progress);
             var serializer = new JavaScriptSerializer { MaxJsonLength = int.MaxValue };
             var plan = serializer.Deserialize<RenamePlan>(json);
             await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync();
@@ -131,19 +131,29 @@ internal sealed class RenameComponentCommand : AbstractBaseCommand<RenameCompone
             using (process)
             {
                 var output = ReadOutputAsync(process, dte, progress);
-                var error = process.StandardError.ReadToEndAsync();
-                if (input != null)
+                var error = ReadErrorsAsync(process, progress);
+                try
                 {
-                    var bytes = Encoding.UTF8.GetBytes(input + "\n");
-                    await process.StandardInput.BaseStream.WriteAsync(bytes, 0, bytes.Length);
-                    await process.StandardInput.BaseStream.FlushAsync();
+                    if (input != null)
+                    {
+                        // One JSON message per line, including when stdout supplied CRLF.
+                        var bytes = Encoding.UTF8.GetBytes(input.TrimEnd('\r', '\n') + "\n");
+                        await process.StandardInput.BaseStream.WriteAsync(bytes, 0, bytes.Length);
+                        await process.StandardInput.BaseStream.FlushAsync();
+                    }
+                    if (dte == null) process.StandardInput.Close();
+                    var result = await output;
+                    var message = await error;
+                    process.WaitForExit();
+                    if (process.ExitCode != 0) throw new InvalidOperationException(string.IsNullOrWhiteSpace(message) ? "The rename engine exited without an error description." : message);
+                    if (string.IsNullOrWhiteSpace(result)) throw new InvalidOperationException("The rename engine returned an empty response.");
+                    return result;
                 }
-                if (dte == null) process.StandardInput.Close();
-                var result = await output;
-                var message = await error;
-                process.WaitForExit();
-                if (process.ExitCode != 0) throw new InvalidOperationException(message);
-                return result;
+                finally
+                {
+                    process.StandardInput.Close();
+                    if (!process.HasExited) process.Kill();
+                }
             }
         });
     }
@@ -155,6 +165,7 @@ internal sealed class RenameComponentCommand : AbstractBaseCommand<RenameCompone
         string line;
         while ((line = await process.StandardOutput.ReadLineAsync()) != null)
         {
+            if (string.IsNullOrWhiteSpace(line)) continue;
             var request = dte == null ? null : serializer.Deserialize<DirectoryRequest>(line);
             if (request?.operation != "renameDirectory") { result.AppendLine(line); continue; }
             string response;
@@ -169,6 +180,23 @@ internal sealed class RenameComponentCommand : AbstractBaseCommand<RenameCompone
             await process.StandardInput.BaseStream.FlushAsync();
         }
         return result.ToString();
+    }
+
+    private static async System.Threading.Tasks.Task<string> ReadErrorsAsync(Process process, RenameProgress progress)
+    {
+        const string prefix = "ANGULAR_TOOLS_PROGRESS:";
+        var errors = new StringBuilder();
+        string line;
+        while ((line = await process.StandardError.ReadLineAsync()) != null)
+        {
+            if (line.StartsWith(prefix, StringComparison.Ordinal))
+            {
+                await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync();
+                if (progress != null && !progress.IsDisposed) progress.SetStage(line.Substring(prefix.Length));
+            }
+            else errors.AppendLine(line);
+        }
+        return errors.ToString();
     }
 
     private static async Task RenameDirectoryAsync(DTE2 dte, string from, string to, RenameProgress progress)
