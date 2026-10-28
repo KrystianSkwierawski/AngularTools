@@ -62,9 +62,14 @@ internal sealed class RenameComponentCommand : AbstractBaseCommand<RenameCompone
                 {
                     var fullName = document.FullName;
                     var entry = plan.entries.FirstOrDefault(x => string.Equals(x.from, fullName, StringComparison.OrdinalIgnoreCase));
-                    if (entry == null) continue;
+                    var destination = entry?.to;
+                    if (destination == null && plan.directory != null)
+                        destination = RemapDirectoryPath(plan.directory.from, plan.directory.to, fullName);
+                    if (destination == null && string.Equals(fullName, selected, StringComparison.OrdinalIgnoreCase))
+                        destination = plan.selected;
+                    if (destination == null) continue;
                     document.Close(vsSaveChanges.vsSaveChangesNo);
-                    reopened.Add(entry);
+                    reopened.Add(new RenameEntry { from = fullName, to = destination });
                 }
                 progress.SetStage("Applying changes and updating the project...");
                 await VS.StatusBar.ShowMessageAsync("Angular rename: applying changes...");
@@ -99,6 +104,13 @@ internal sealed class RenameComponentCommand : AbstractBaseCommand<RenameCompone
 
     private static bool InWorkspace(string root, string file) => file != null &&
         Path.GetFullPath(file).StartsWith(Path.GetFullPath(root).TrimEnd(Path.DirectorySeparatorChar) + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase);
+
+    private static string RemapDirectoryPath(string from, string to, string file)
+    {
+        if (!InWorkspace(from, file)) return null;
+        var prefix = Path.GetFullPath(from).TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar) + Path.DirectorySeparatorChar;
+        return Path.Combine(to, Path.GetFullPath(file).Substring(prefix.Length));
+    }
 
     private static string Quote(string value)
     {
@@ -271,7 +283,14 @@ internal sealed class RenameComponentCommand : AbstractBaseCommand<RenameCompone
     {
         public string root { get; set; }
         public string selected { get; set; }
+        public DirectoryMove directory { get; set; }
         public List<RenameEntry> entries { get; set; }
+    }
+
+    public sealed class DirectoryMove
+    {
+        public string from { get; set; }
+        public string to { get; set; }
     }
 
     public sealed class RenameEntry
