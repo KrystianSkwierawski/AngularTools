@@ -54,6 +54,44 @@ test('shared folders are retained and unrelated files are preserved', t => {
   assert.equal(f.read('src/shared/old.component.extra.ts'), 'unchanged');
 });
 
+test('updates exact suite titles only in associated spec and test files', t => {
+  const suites = [
+    "describe('OldComponent', () => { const label = 'OldComponent'; });",
+    'fdescribe("OldComponent", () => {});',
+    'xdescribe(`OldComponent`, () => {});',
+    "describe.only('OldComponent', () => {});",
+    "describe.skip('OldComponent', () => {});",
+    "describe('OldComponent behavior', () => {});",
+    "describe('OtherComponent', () => {});",
+    "it('OldComponent', () => {});",
+    "custom.describe('OldComponent', () => {});",
+    "describe.custom('OldComponent', () => {});",
+    'describe(`OldComponent ${suffix}`, () => {});',
+    "// describe('OldComponent', () => {});",
+  ].join('\r\n');
+  const f = fixture(t, {
+    'src/old/old.component.ts': component(),
+    'src/old/old.component.spec.ts': "import { OldComponent } from './old.component';\r\n" + suites,
+    'src/old/old.component.test.ts': "describe('OldComponent', () => {});",
+    'src/old/other.spec.ts': "describe('OldComponent', () => {});",
+    'src/elsewhere.spec.ts': "describe('OldComponent', () => {});",
+    'src/main.ts': "describe('OldComponent', () => {});",
+  });
+  const p = f.rename('src/old/old.component.spec.ts', 'new-card');
+  assert.equal(f.read('src/old/old.component.spec.ts').endsWith(suites), true, 'planning does not write suite titles');
+  apply(p);
+  const expected = suites
+    .replace("describe('OldComponent',", "describe('NewCardComponent',")
+    .replace('fdescribe("OldComponent",', 'fdescribe("NewCardComponent",')
+    .replace('xdescribe(`OldComponent`,', 'xdescribe(`NewCardComponent`,')
+    .replace("describe.only('OldComponent',", "describe.only('NewCardComponent',")
+    .replace("describe.skip('OldComponent',", "describe.skip('NewCardComponent',");
+  assert.equal(f.read('src/new-card/new-card.component.spec.ts'), "import { NewCardComponent } from './new-card.component';\r\n" + expected);
+  assert.equal(f.read('src/new-card/new-card.component.test.ts'), "describe('NewCardComponent', () => {});");
+  for (const name of ['src/new-card/other.spec.ts', 'src/elsewhere.spec.ts', 'src/main.ts'])
+    assert.equal(f.read(name), "describe('OldComponent', () => {});");
+});
+
 test('supports suffixless migration in both directions', t => {
   const f = fixture(t, { 'src/old/old.component.ts': component(), 'src/old/old.component.spec.ts': "import {OldComponent} from './old.component'; new OldComponent();" });
   apply(f.rename('src/old/old.component.ts', 'fresh.'));

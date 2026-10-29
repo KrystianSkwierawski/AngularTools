@@ -212,7 +212,20 @@ function plan(selected, input, root = findRoot(selected), tsOverride) {
   progress('Updating imports and component metadata...');
   const resolve = (specifier, from) => resolveWith(specifier, from, optionsFor(from));
   for (const [f, tree] of asts) {
+    const associatedTest = associated.has(key(f)) && /\.(?:spec|test)\.ts$/i.test(f);
     const visit = node => {
+      // Generated suite titles are strings, so the semantic symbol rename does
+      // not include them. Restrict this convention to the selected unit's tests
+      // and exact symbol titles; descriptions and other strings are user text.
+      if (associatedTest && ts.isCallExpression(node)) {
+        const callee = node.expression;
+        const suite = ts.isIdentifier(callee) && ['describe', 'fdescribe', 'xdescribe'].includes(callee.text) ||
+          ts.isPropertyAccessExpression(callee) && ts.isIdentifier(callee.expression) && callee.expression.text === 'describe' &&
+          ['only', 'skip'].includes(callee.name.text);
+        const title = node.arguments[0];
+        if (suite && title && ts.isStringLiteralLike(title) && title.text === oldSymbol)
+          edit(f, title.getStart(tree) + 1, title.getWidth(tree) - 2, newSymbol);
+      }
       if (ts.isStringLiteralLike(node)) {
         const module = isModuleLiteral(node, tree);
         if (module) {
